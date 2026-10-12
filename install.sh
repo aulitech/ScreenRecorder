@@ -1,6 +1,7 @@
 #!/bin/sh
 # Puts Screen Recorder where it lives, from this folder:
-#   ~/Library/Application Support/Recording/   start.sh, stop.sh — what the app runs
+#   ~/Library/Application Support/Recording/   start.sh, stop.sh — what the app runs,
+#                                              and frames/ — the glow it plays
 #   ~/Applications/Screen Recorder.app         the app, with its camera icon
 #   ~/Library/Services/                        the two hotkey Quick Actions
 # and sets the hotkeys and the Dock icon. Safe to run again.
@@ -19,6 +20,15 @@ app="$HOME/Applications/Screen Recorder.app"
 mkdir -p "$support"
 install -m 755 scripts/start.sh scripts/stop.sh "$support/"
 echo "Installed start.sh and stop.sh"
+
+# The glow the app plays while it records: the camera fading to a dull red and
+# back, one cycle of 60 frames. Drawn afresh and swapped in whole, so a change
+# to the glow needs no permission either.
+tmp=$(mktemp -d)
+osascript -l JavaScript icon/icon.js "$tmp/" 60
+rm -rf "$support/frames"
+mv "$tmp" "$support/frames"
+echo "Installed the recording glow"
 
 # 2. The app — rebuilt only when its source has changed: macOS ties the
 #    screen-recording permission to the exact app, so a rebuilt one has to be
