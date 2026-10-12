@@ -12,6 +12,7 @@ START_KEY='@~^r'
 STOP_KEY='@~^s'
 
 support="$HOME/Library/Application Support/Recording"
+rebuilt=0
 app="$HOME/Applications/Screen Recorder.app"
 
 # 1. The commands the app runs. Changing these never needs permission again.
@@ -38,11 +39,14 @@ else
   rm -rf "$app"
   osacompile -s -o "$app" app/recorder.applescript
   cp "$tmp/camera.icns" "$app/Contents/Resources/applet.icns"
-  # osacompile also names an icon in its asset catalogue — the AppleScript
-  # scroll — and macOS takes that over applet.icns, so the name goes.
+  # osacompile also puts the AppleScript scroll in an asset catalogue and names
+  # it, and macOS — the Dock's icon cache most stubbornly — takes that over
+  # applet.icns. So the name goes, and the catalogue with it.
   plutil -remove CFBundleIconName "$app/Contents/Info.plist"
+  rm -f "$app/Contents/Resources/Assets.car"
   codesign --force -s - "$app" 2>/dev/null
   touch "$app"
+  rebuilt=1
   rm -rf "$tmp"
   echo "Built Screen Recorder.app. Turn it on (off and on again, if it is listed) under"
   echo "System Settings › Privacy & Security › Screen & System Audio Recording."
@@ -70,7 +74,27 @@ defaults write pbs NSServicesStatus -dict-add '"(null) - Stop Screen Recording -
 /System/Library/CoreServices/pbs -update
 echo "Installed the hotkeys"
 
-# 4. The Dock icon, added once.
+# 4. The Dock icon, added once — and, after a rebuild, its tile renewed: the
+#    Dock keeps details of the app in the tile, and goes on drawing the icon it
+#    found there however the app has changed.
+if [ "$rebuilt" = 1 ] && defaults read com.apple.dock persistent-apps | grep -q 'Screen%20Recorder.app'; then
+  tmp=$(mktemp -d)
+  defaults export com.apple.dock "$tmp/dock.plist"
+  python3 - "$tmp/dock.plist" <<'PY'
+import plistlib, sys
+p = sys.argv[1]
+d = plistlib.load(open(p, 'rb'))
+for t in d['persistent-apps']:
+    f = t.get('tile-data', {}).get('file-data', {})
+    if f.get('_CFURLString', '').rstrip('/').endswith('Screen%20Recorder.app'):
+        t['tile-data'] = {'file-data': f}
+plistlib.dump(d, open(p, 'wb'))
+PY
+  defaults import com.apple.dock "$tmp/dock.plist"
+  rm -rf "$tmp"
+  killall Dock
+fi
+
 if ! defaults read com.apple.dock persistent-apps | grep -q 'Screen%20Recorder.app'; then
   url="file://$(printf '%s' "$app" | sed 's/ /%20/g')/"
   defaults write com.apple.dock persistent-apps -array-add \
