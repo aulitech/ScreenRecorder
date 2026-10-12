@@ -32,3 +32,7 @@ Run it again after changing anything here. The first time — and whenever `app/
 They are Quick Actions, so the app in front is what hears them. That has two consequences:
 - **Not every app hears them.** An app that does not take part in the Services menu does not. Finder and most Apple apps do.
 - **An app already running keeps the copy it read at launch.** If a Quick Action is replaced while an app is open, the hotkey stops working in that app until it is restarted. `install.sh` replaces one only when it has changed.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
