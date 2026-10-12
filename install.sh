@@ -38,6 +38,9 @@ else
   rm -rf "$app"
   osacompile -s -o "$app" app/recorder.applescript
   cp "$tmp/camera.icns" "$app/Contents/Resources/applet.icns"
+  # osacompile also names an icon in its asset catalogue — the AppleScript
+  # scroll — and macOS takes that over applet.icns, so the name goes.
+  plutil -remove CFBundleIconName "$app/Contents/Info.plist"
   codesign --force -s - "$app" 2>/dev/null
   touch "$app"
   rm -rf "$tmp"

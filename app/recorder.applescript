@@ -23,12 +23,15 @@ on isRecording()
 	end try
 end isRecording
 
--- Bounces until the app is next brought forward, which only a dwell on its
--- icon does. A frontmost app cannot ask for attention, so it steps back first.
+-- One bounce, asked for every second while it records — see `idle`. A
+-- frontmost app cannot ask for attention, so one in front steps back first.
+-- It was one critical request, meant to bounce until the app was brought
+-- forward; asked for while the app was still in front, it was ignored, and
+-- nothing asked again.
 on bounce()
 	set app_ to current application's NSApplication's sharedApplication()
-	app_'s hide:(missing value)
-	app_'s requestUserAttention:(current application's NSCriticalRequest)
+	if (app_'s isActive()) as boolean then app_'s hide:(missing value)
+	app_'s requestUserAttention:(current application's NSInformationalRequest)
 end bounce
 
 on startRecording()
@@ -63,19 +66,19 @@ on reopen
 	end if
 end reopen
 
--- Every two seconds: a recording that ended by itself ends the bouncing too,
--- and one still running keeps bouncing if anything brought the app forward.
+-- Every second: a bounce while it records, and a recording that ended by
+-- itself ends the bouncing too.
 on idle
 	if recording then
 		if not isRecording() then
 			set recording to false
 			display notification "The recording stopped by itself. Anything recorded is in Desktop › screenshots." with title "Screen Recorder"
 			tell me to quit
-		else if (current application's NSApplication's sharedApplication()'s isActive()) as boolean then
+		else
 			bounce()
 		end if
 	end if
-	return 2
+	return 1
 end idle
 
 on quit
